@@ -14,12 +14,13 @@
 using Time = std::chrono::nanoseconds;
 
 const size_t minSize = 10 * 1024;
-const size_t maxSize = static_cast<size_t>(4) * 1024 * 1024 * 1024;
+const size_t maxSize = static_cast<size_t>(1) * 1024 * 1024 * 1024;
+const size_t cacheSize = 50 * 1024 * 1024;
 const size_t sizeStep = 64;
-const size_t iterations = 5;
+const size_t iterations = 10;
 const size_t differentValues = 20;
 const size_t minThreads = 1;
-const size_t maxThreads = 4;
+const size_t maxThreads = 8;
 const size_t threadStep = 2;
 
 enum class Mode : int8_t { AGGREGATE, SCAN };
@@ -81,7 +82,7 @@ struct Functor
 
 void clearCache()
 {
-	static std::vector<uint8_t> cacheClearer(50 * 1024 * 1024);
+	static std::vector<uint8_t> cacheClearer(cacheSize);
 	volatile size_t count = 0;
 	for (auto elem : cacheClearer)
 	{
@@ -139,9 +140,12 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				{
 					threads[currentThread] = std::thread([&times, currentThread, data, elementCount]()
 					{
-						times[currentThread] = measureTime<Elem, mode>(data, elementCount);
+						times[currentThread] = measureTime<Elem, mode>(data + cacheSize / sizeof(Elem) * currentThread, elementCount);
 					});
 				}
+
+				// Wait for all threads to start
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 				startFlag.store(true);
 				for (auto &thread : threads)
@@ -153,6 +157,9 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				{
 					thread = std::thread(clearCache);
 				}
+
+				// Wait for all threads to start
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 				for (auto &thread : threads)
 				{
@@ -191,7 +198,7 @@ void printResult(const std::vector<TestResult<Elem>> &results)
 
 int main(int argc, char** argv)
 {
-	auto data = std::make_unique<uint8_t[]>(maxSize);
+	auto data = std::make_unique<uint8_t[]>(maxSize + maxThreads * cacheSize);
 
 	printResult(run<uint8_t, Mode::AGGREGATE>(data.get()));
 	printResult(run<uint16_t, Mode::AGGREGATE>(data.get()));
