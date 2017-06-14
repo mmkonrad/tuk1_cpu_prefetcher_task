@@ -34,7 +34,7 @@ struct TestResult
 		: Average(0)
 		, Min(std::numeric_limits<size_t>::max())
 		, Max(0)
-		, Mode(mode)
+		, RunMode(mode)
 		, Threads(threads)
 		, Size(size)
 	{
@@ -43,42 +43,44 @@ struct TestResult
 	Time Average;
 	Time Min;
 	Time Max;
-	Mode Mode;
+	Mode RunMode;
 	const size_t Threads;
 	const size_t Size;
 };
 
-template<typename Elem>
+template<Mode mode>
 struct Functor
 {
-	template<Mode mode>
+	template<typename Elem>
 	static size_t execute(Elem* data, size_t elementCount);
-
-	template<>
-	static size_t execute<Mode::AGGREGATE>(Elem* data, size_t elementCount)
-	{
-		size_t counter = 0;
-		for (size_t current = 0; current < elementCount; ++current)
-		{
-			counter += data[current];
-		}
-		return counter;
-	}
-
-	template<>
-	static size_t execute<Mode::SCAN>(Elem* data, size_t elementCount)
-	{
-		size_t counter = 0;
-		for (size_t current = 0; current < elementCount; ++current)
-		{
-			if (data[current] == 0)
-			{
-				++counter;
-			}
-		}
-		return counter;
-	}
 };
+
+template<>
+template<typename Elem>
+size_t Functor<Mode::AGGREGATE>::execute(Elem* data, size_t elementCount)
+{
+	size_t counter = 0;
+	for (size_t current = 0; current < elementCount; ++current)
+	{
+		counter += data[current];
+	}
+	return counter;
+}
+
+template<>
+template<typename Elem>
+size_t Functor<Mode::SCAN>::execute(Elem* data, size_t elementCount)
+{
+	size_t counter = 0;
+	for (size_t current = 0; current < elementCount; ++current)
+	{
+		if (data[current] == 0)
+		{
+			++counter;
+		}
+	}
+	return counter;
+}
 
 void clearCache()
 {
@@ -96,7 +98,7 @@ Time measureTime(Elem* data, size_t elementCount)
 	while (!startFlag.load());
 	const auto begin = std::chrono::high_resolution_clock::now();
 
-	auto result = Functor<Elem>::execute<mode>(data, elementCount);
+	auto result = Functor<mode>::template execute<Elem>(data, elementCount);
 
 	const auto end = std::chrono::high_resolution_clock::now();
 
@@ -111,7 +113,7 @@ void randomizeData(Elem* data, size_t elementCount)
 	data[0] = 1;
 	for (size_t current = 1; current < elementCount; ++current)
 	{
-		data[current] = (data[current-1] + 7) * 13;
+		data[current] = (data[current - 1] + 7) * 13;
 	}
 }
 
@@ -186,12 +188,12 @@ void printResult(const std::vector<TestResult<Elem>> &results)
 {
 	for (auto &result : results)
 	{
-		std::cout 
-			<< static_cast<int>(result.Mode) << ";" 
-			<< typeid(Elem).name() << "; " 
-			<< result.Size << "; " 
-			<< result.Threads << "; " 
-			<< result.Average.count() << "; " 
+		std::cout
+			<< static_cast<int>(result.RunMode) << ";"
+			<< typeid(Elem).name() << "; "
+			<< result.Size << "; "
+			<< result.Threads << "; "
+			<< result.Average.count() << "; "
 			<< (result.Size * result.Threads) / static_cast<double>(result.Average.count()) << std::endl;
 	}
 }
