@@ -22,6 +22,7 @@ const size_t differentValues = 20;
 const size_t minThreads = 1;
 const size_t maxThreads = 8;
 const size_t threadStep = 2;
+const size_t bufferSize = maxSize + maxThreads * cacheSize;
 
 enum class Mode : int8_t { AGGREGATE, SCAN };
 
@@ -122,7 +123,7 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 {
 	std::vector<TestResult<Elem>> results;
 	auto data = reinterpret_cast<Elem*>(rawData);
-	randomizeData(data, maxSize / sizeof(Elem));
+	randomizeData(data, bufferSize / sizeof(Elem));
 
 	for (size_t size = minSize; size < maxSize; size *= sizeStep)
 	{
@@ -159,9 +160,6 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				{
 					thread = std::thread(clearCache);
 				}
-
-				// Wait for all threads to start
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 				for (auto &thread : threads)
 				{
@@ -200,7 +198,7 @@ void printResult(const std::vector<TestResult<Elem>> &results)
 
 int main(int argc, char** argv)
 {
-	auto data = std::make_unique<uint8_t[]>(maxSize + maxThreads * cacheSize);
+	auto data = std::make_unique<uint8_t[]>(bufferSize);
 
 	printResult(run<uint8_t, Mode::AGGREGATE>(data.get()));
 	printResult(run<uint16_t, Mode::AGGREGATE>(data.get()));
