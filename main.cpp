@@ -188,7 +188,7 @@ void printResult(const std::vector<TestResult<Elem>> &results)
 	{
 		std::cout
 			<< static_cast<int>(result.RunMode) << ";"
-			<< typeid(Elem).name() << "; "
+			<< sizeof(Elem) << "; "
 			<< result.Size << "; "
 			<< result.Threads << "; "
 			<< result.Average.count() << "; "
