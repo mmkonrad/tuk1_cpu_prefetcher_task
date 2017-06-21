@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import pandas as pds
 
 GCC_INTEGER_TYPES = {
-    'h': 'uint8_t',
-    't': 'uint16_t',
-    'j': 'uint32_t',
-    'm': 'uint64_t'
+    '1': 'uint8_t',
+    '2': 'uint16_t',
+    '4': 'uint32_t',
+    '8': 'uint64_t'
 }
 
 CACHE_SIZES_IN_KB = {
@@ -16,8 +16,8 @@ CACHE_SIZES_IN_KB = {
 
 converters = {'Integer_Type': lambda x: GCC_INTEGER_TYPES[x]}
 
-data_prefetch = pds.read_csv('../results/prefetch.csv', ';', skipinitialspace=True, converters=converters)
-data_no_prefetch = pds.read_csv('../results/non-prefetch.csv', ';', skipinitialspace=True, converters=converters)
+data_prefetch = pds.read_csv('./results/prefetch.csv', ';', skipinitialspace=True, converters=converters)
+data_no_prefetch = pds.read_csv('./results/non-prefetch.csv', ';', skipinitialspace=True, converters=converters)
 
 
 def plot_line(data, options):
@@ -47,20 +47,20 @@ def plot_line(data, options):
     plt.legend([v[0] for v in data.groupby(options['groupby'])])
     plt.figtext(0, -0.1, options['subtitle'], fontsize=8)
 
-    plt.savefig(options['out_file'] + '.pdf', bbox_inches='tight', dpi=200)
-    plt.savefig(options['out_file'] + '.png', bbox_inches='tight', dpi=200)
+    # Export Plot
+    plt.savefig('./plot/' + options['out_file'] + '.pdf', bbox_inches='tight', dpi=200)
+    plt.savefig('./plot/' + options['out_file'] + '.png', bbox_inches='tight', dpi=200)
     # plt.show()
 
 
 def base_benchmark():
     # Aggregate Benchmark
     df_1 = data_prefetch.query('Benchmark_Type == 0').query('Thread_Count == 1')
-    df_1[['Bandwidth']] = df_1[['Bandwidth']] * 10
     options = {
-        'title': 'Column Scan Bandwidth as a Function of the Column Size and the Bitcase',
-        'subtitle': 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/ Prefetcher, 1 Thread, Aggregate',
+        'title': 'Aggregate Bandwidth as a Function of the Column Size and the Bitcase',
+        'subtitle': 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/ Prefetcher, 1 Thread',
         'x_col': 'Vector_Size',
-        'x_label': 'Attribute Vector Size (in KB)',
+        'x_label': 'Attribute Vector Size (in Byte)',
         'y_col': 'Bandwidth',
         'y_label': 'Effective Bandwidth (in GB/s)',
         'groupby': 'Integer_Type',
@@ -70,8 +70,8 @@ def base_benchmark():
 
     # Scan Benchmark
     df_2 = data_prefetch.query('Benchmark_Type == 1').query('Thread_Count == 1')
-    df_2[['Bandwidth']] = df_2[['Bandwidth']] * 10
-    options['subtitle'] = 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/ Prefetcher, 1 Thread, Scan'
+    options['title'] = 'Column Scan Bandwidth as a Function of the Column Size and the Bitcase'
+    options['subtitle'] = 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/ Prefetcher, 1 Thread'
     options['out_file'] = '1_scan_w-pref_1-thread'
     plot_line(df_2, options)
 
@@ -79,12 +79,11 @@ def base_benchmark():
 def prefetch_benchmark():
     # Aggregate w/o Prefetch
     df_1 = data_no_prefetch.query('Benchmark_Type == 0').query('Thread_Count == 1')
-    df_1[['Bandwidth']] = df_1[['Bandwidth']] * 10
     options = {
-        'title': 'Column Scan Bandwidth as a Function of the Column Size and the Bitcase',
-        'subtitle': 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/o Prefetcher, 1 Thread, Aggregate',
+        'title': 'Aggregate Bandwidth as a Function of the Column Size and the Bitcase',
+        'subtitle': 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/o Prefetcher, 1 Thread',
         'x_col': 'Vector_Size',
-        'x_label': 'Attribute Vector Size (in KB)',
+        'x_label': 'Attribute Vector Size (in Byte)',
         'y_col': 'Bandwidth',
         'y_label': 'Effective Bandwidth (in GB/s)',
         'groupby': 'Integer_Type',
@@ -97,10 +96,10 @@ def multi_thread_benchmark():
     # Multi-Threading Benchmark
     df_1 = data_prefetch.query('Benchmark_Type == 0').query('Integer_Type == "uint64_t"')
     options = {
-        'title': 'Column Scan Bandwidth as Function of Column Size and Thread Count',
-        'subtitle': 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/ Prefetcher, uint64_t, Aggregate',
+        'title': 'Aggregate Bandwidth as Function of Column Size and Thread Count',
+        'subtitle': 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/ Prefetcher, uint64_t',
         'x_col': 'Vector_Size',
-        'x_label': 'Attribute Vector Size (in KB)',
+        'x_label': 'Attribute Vector Size (in Byte)',
         'y_col': 'Bandwidth',
         'y_label': 'Effective Bandwidth (in GB/s)',
         'groupby': 'Thread_Count',
@@ -110,7 +109,7 @@ def multi_thread_benchmark():
 
     # Multi-Threading w/o Prefetcher
     df_2 = data_no_prefetch.query('Benchmark_Type == 0').query('Integer_Type == "uint64_t"')
-    options['subtitle'] = 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/o Prefetcher, uint64_t, Aggregate'
+    options['subtitle'] = 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w/o Prefetcher, uint64_t'
     options['out_file'] = '3_aggregate_wo-pref_multi-thread'
     plot_line(df_2, options)
 
