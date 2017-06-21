@@ -13,16 +13,15 @@
 
 using Time = std::chrono::nanoseconds;
 
-const size_t minSize = 10 * 1024;
+const size_t minSize = 32;
 const size_t maxSize = static_cast<size_t>(1) * 1024 * 1024 * 1024;
 const size_t cacheSize = 50 * 1024 * 1024;
-const size_t sizeStep = 64;
+const size_t sizeStep = 8;
 const size_t iterations = 10;
 const size_t differentValues = 20;
 const size_t minThreads = 1;
-const size_t maxThreads = 8;
+const size_t maxThreads = 32;
 const size_t threadStep = 2;
-const size_t bufferSize = maxSize + maxThreads * cacheSize;
 
 enum class Mode : int8_t { AGGREGATE, SCAN };
 
