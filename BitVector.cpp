@@ -190,9 +190,7 @@ double measureTime(std::function<void()> benchmark)
   return static_cast<double>(total_time.count()) / (runs * 1000000);
 }
 
-int main(int argc, char** argv)
-{
-//  test_avx2();
+void run_benchmark() {
   size_t size = 500000000;
   size_t value = 1;
   BitVector<17> bit_vector(size);
@@ -249,4 +247,10 @@ int main(int argc, char** argv)
       accessed_value = current_value;
   });
   cout << "Vector " << result5 << " ms" <<  endl;
+}
+
+int main(int argc, char** argv)
+{
+//  test_avx2();
+  run_benchmark();
 }
