@@ -9,6 +9,8 @@
 #include <iomanip>
 #include <unistd.h>
 #include <random>
+#include <algorithm>
+#include <bitset>
 
 // get AVX intrinsics
 #include <immintrin.h>
