@@ -4,11 +4,17 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
+#include <chrono>
+#include <functional>
+#include <iomanip>
+#include <unistd.h>
+#include <random>
 
 // get AVX intrinsics
 #include <immintrin.h>
 
 using namespace std;
+using Time = std::chrono::nanoseconds;
 
 const __m256i selection_mask_64 = _mm256_set_epi64x(-1, -1, -1, -1);
 const __m256i selection_mask = _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1);
@@ -137,7 +143,7 @@ protected:
 
 void test_avx2() {
   cout << "Testing AVX2 Code ..." << endl;
-  for (size_t vector_size = 1; vector_size < 2000; ++vector_size) {
+  for (size_t vector_size = 1; vector_size < 100; ++vector_size) { // 2000
     if (vector_size % 100 == 0) {
       cout << "With size: " << vector_size << endl;
     }
@@ -163,7 +169,82 @@ void test_avx2() {
   cout << "... finished" << endl;
 }
 
+double measureTime(std::function<void()> benchmark)
+{
+
+  // warmup
+  for (size_t i = 0; i < 3; ++i) {
+    benchmark();
+  }
+
+  size_t runs = 10;
+  const auto begin = std::chrono::high_resolution_clock::now();
+  for (size_t i = 0; i < runs; ++i) {
+    benchmark();
+  }
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  Time total_time = std::chrono::duration_cast<Time>(end - begin);
+  return static_cast<double>(total_time.count()) / (runs * 1000000);
+}
+
 int main(int argc, char** argv)
 {
-  test_avx2();
+//  test_avx2();
+  size_t size = 500000000;
+  size_t value = 1;
+  BitVector<17> bit_vector(size);
+  std::vector<int> vect;
+  std::vector<int> rand_access;
+  vect.reserve(size);
+  rand_access.reserve(size);
+  for (size_t i = 0; i < size; ++i) {
+    int tmp_val = i % (1 << 17);
+    bit_vector.push_back(tmp_val);
+    vect.push_back(tmp_val);
+    rand_access.push_back(i);
+  }
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(rand_access.begin(), rand_access.end(), g);
+  cout << std::fixed << std::setprecision(6);
+  cout << "Created BitVector and Vector. Starting Benchmarks." << endl;
+  cout << "Search" << endl;
+  std::vector<bool> search_result;
+  auto result1 = measureTime([&](){
+      search_result = bit_vector.avx2_search(value);
+  });
+  cout << "AVX2 " << result1 << " ms" << endl;
+
+  auto result2 = measureTime([&](){
+      search_result = bit_vector.search(value);
+  });
+  cout << "BitVector " << result2 << " ms" <<  endl;
+  auto result3 = measureTime([&](){
+      std::vector<bool> result;
+      result.reserve(size);
+      for (auto itr = vect.begin(); itr != vect.end(); ++itr) {
+        result.emplace_back(*itr == value);
+      }
+      search_result = result;
+  });
+  cout << "Vector " << result3 << " ms" <<  endl;
+  cout << "Random access" << endl;
+  int64_t accessed_value;
+  auto result4 = measureTime([&](){
+      int64_t current_value = 0;
+      for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
+        current_value ^= bit_vector[*itr];
+      }
+      accessed_value = current_value;
+  });
+  cout << "BitVector " << result4 << " ms" <<  endl;
+  auto result5 = measureTime([&](){
+      int64_t current_value = 0;
+      for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
+        current_value ^= vect[*itr];
+      }
+      accessed_value = current_value;
+  });
+  cout << "Vector " << result5 << " ms" <<  endl;
 }
