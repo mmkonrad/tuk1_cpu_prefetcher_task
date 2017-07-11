@@ -17,7 +17,7 @@ const size_t minSize = 32;
 const size_t maxSize = static_cast<size_t>(1) * 1024 * 1024 * 1024;
 const size_t cacheSize = 50 * 1024 * 1024;
 const size_t sizeStep = 2;
-const size_t iterations = 500;
+const size_t iterations = 1000;
 const size_t differentValues = 20;
 const size_t minThreads = 1;
 const size_t maxThreads = 8;
@@ -97,12 +97,12 @@ void clearCache()
 }
 
 template<typename Elem, Mode mode>
-Time measureTime(Elem* data, size_t elementCount)
+Time measureTime(Elem* data, size_t elementCount, size_t type_size)
 {
-  int itr = std::max((1<<22) / elementCount, iterations);
+  size_t itr = std::max(static_cast<size_t>(static_cast<double>(1ul<<33) / (elementCount * type_size)), iterations);
 	while (!startFlag.load());
 	// fill cache
-	Functor<mode>::template execute<Elem>(data, elementCount, itr/2);
+	Functor<mode>::template execute<Elem>(data, elementCount, itr/10);
 
 	const auto begin = std::chrono::high_resolution_clock::now();
 
@@ -155,7 +155,7 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				{
 					threads[currentThread] = std::thread([&times, currentThread, data, elementCount]()
 					{
-						times[currentThread] = measureTime<Elem, mode>(data + cacheSize / sizeof(Elem) * currentThread, elementCount);
+						times[currentThread] = measureTime<Elem, mode>(data + cacheSize / sizeof(Elem) * currentThread, elementCount, sizeof(Elem));
 					});
 				}
 
@@ -167,6 +167,11 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				{
 					thread.join();
 				}
+
+        // do not take first result for scans
+        if (iteration == 0) {
+          continue;
+        }
 
 //				for (auto &thread : threads)
 //				{
@@ -184,7 +189,7 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				result.Min = std::min(result.Min, time);
 				result.Max = std::max(result.Max, time);
 			}
-			result.Average /= rounds;
+			result.Average /= (rounds - 1);
 
 			results.push_back(result);
 		}
