@@ -7,7 +7,7 @@
 #include <chrono>
 #include <functional>
 #include <iomanip>
-#include <unistd.h>
+//#include <unistd.h>
 #include <random>
 #include <algorithm>
 #include <bitset>
@@ -190,8 +190,38 @@ double measureTime(std::function<void()> benchmark)
   return static_cast<double>(total_time.count()) / (runs * 1000000000);
 }
 
+template <typename T>
+int64_t point_lookup_wo(std::vector<int> &rand_access, T &vector) {
+  __attribute__((optimize("no-tree-vectorize")))
+  int64_t current_value = 0;
+  for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
+    current_value ^= vector[*itr];
+  }
+  return current_value;
+}
+
+template <typename T>
+int64_t point_lookup(std::vector<int> &rand_access, T &vector) {
+  __attribute__((optimize("tree-vectorize")))
+  int64_t current_value = 0;
+  for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
+    current_value ^= vector[*itr];
+  }
+  return current_value;
+}
+
+std::vector<bool> table_scan_wo(std::vector<int> &vect, uint64_t value) {
+  __attribute__((optimize("no-tree-vectorize")))
+  std::vector<bool> result;
+  result.reserve(vect.size());
+  for (auto itr = vect.begin(); itr != vect.end(); ++itr) {
+    result.emplace_back(*itr == value);
+  }
+  return result;
+}
+
 void run_benchmark() {
-  size_t size = 500000000;
+  size_t size = 50000000;
   size_t value = 1;
   BitVector<17> bit_vector(size);
   std::vector<int> vect;
@@ -207,46 +237,51 @@ void run_benchmark() {
   std::random_device rd;
   std::mt19937 g(rd());
   std::shuffle(rand_access.begin(), rand_access.end(), g);
-  cout << "Operation; Type; Time" << endl;
+  cout << "Operation; Type; #Tuples" << endl;
   cout << std::fixed << std::setprecision(0);
+  uint64_t use_variable;
   std::vector<bool> search_result;
   auto result1 = measureTime([&](){
       search_result = bit_vector.avx2_search(value);
   });
+  use_variable = search_result.size();
   cout << "Table Scan; AVX; " << size / result1 << endl;
 
   auto result2 = measureTime([&](){
       search_result = bit_vector.search(value);
   });
+  use_variable = search_result.size();
   cout << "Table Scan; Bit-Packed; " << size / result2 << endl;
   auto result3 = measureTime([&](){
-      std::vector<bool> result;
-      result.reserve(size);
-      for (auto itr = vect.begin(); itr != vect.end(); ++itr) {
-        result.emplace_back(*itr == value);
-      }
-      search_result = result;
+      search_result = table_scan_wo(vect, value);
   });
+  use_variable = search_result.size();
   cout << "Table Scan; Regular Vector; " << size / result3 << endl;
   int64_t accessed_value;
   auto result4 = measureTime([&](){
-      __attribute__((optimize("no-tree-vectorize")))
-      int64_t current_value = 0;
-      for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
-        current_value ^= bit_vector[*itr];
-      }
-      accessed_value = current_value;
+      accessed_value = point_lookup_wo(rand_access, bit_vector);
   });
+  use_variable ^= accessed_value;
   cout << "Point Lookups; Bit-Packed; " << size / result4 << endl;
   auto result5 = measureTime([&](){
-      __attribute__((optimize("no-tree-vectorize")))
-      int64_t current_value = 0;
-      for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
-        current_value ^= vect[*itr];
-      }
-      accessed_value = current_value;
+      accessed_value = point_lookup_wo(rand_access, vect);
   });
+  use_variable ^= accessed_value;
   cout << "Point Lookups; Regular Vector; " << size / result5 << endl;
+  auto result6 = measureTime([&](){
+      accessed_value = point_lookup(rand_access, bit_vector);
+  });
+  use_variable ^= accessed_value;
+  cout << "Point Lookups; Bit-Packed w/ SIMD; " << size / result6 << endl;
+  auto result7 = measureTime([&](){
+      accessed_value = point_lookup(rand_access, vect);
+  });
+  use_variable ^= accessed_value;
+  cout << "Point Lookups; Regular Vector w/ SIMD; " << size / result7 << endl;
+  if (use_variable & 1) {
+    cout << flush;
+  }
+
 }
 
 int main(int argc, char** argv)
