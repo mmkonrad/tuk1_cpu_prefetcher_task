@@ -13,7 +13,7 @@
 
 using Time = std::chrono::nanoseconds;
 
-const size_t minSize = 8;
+const size_t minSize = 32;
 const size_t maxSize = static_cast<size_t>(1) * 1024 * 1024 * 1024;
 const size_t cacheSize = 50 * 1024 * 1024;
 const size_t sizeStep = 2;
