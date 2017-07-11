@@ -187,7 +187,7 @@ double measureTime(std::function<void()> benchmark)
 
   const auto end = std::chrono::high_resolution_clock::now();
   Time total_time = std::chrono::duration_cast<Time>(end - begin);
-  return static_cast<double>(total_time.count()) / (runs * 1000000);
+  return static_cast<double>(total_time.count()) / (runs * 1000000000);
 }
 
 void run_benchmark() {
@@ -207,19 +207,18 @@ void run_benchmark() {
   std::random_device rd;
   std::mt19937 g(rd());
   std::shuffle(rand_access.begin(), rand_access.end(), g);
-  cout << std::fixed << std::setprecision(6);
-  cout << "Created BitVector and Vector. Starting Benchmarks." << endl;
-  cout << "Search" << endl;
+  cout << "Operation; Type; Time" << endl;
+  cout << std::fixed << std::setprecision(0);
   std::vector<bool> search_result;
   auto result1 = measureTime([&](){
       search_result = bit_vector.avx2_search(value);
   });
-  cout << "AVX2 " << result1 << " ms" << endl;
+  cout << "Table Scan; AVX; " << size / result1 << endl;
 
   auto result2 = measureTime([&](){
       search_result = bit_vector.search(value);
   });
-  cout << "BitVector " << result2 << " ms" <<  endl;
+  cout << "Table Scan; Bit-Packed; " << size / result2 << endl;
   auto result3 = measureTime([&](){
       std::vector<bool> result;
       result.reserve(size);
@@ -228,17 +227,16 @@ void run_benchmark() {
       }
       search_result = result;
   });
-  cout << "Vector " << result3 << " ms" <<  endl;
-  cout << "Random access" << endl;
+  cout << "Table Scan; Regular Vector; " << size / result3 << endl;
   int64_t accessed_value;
   auto result4 = measureTime([&](){
       int64_t current_value = 0;
       for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
-        current_value ^= bit_vector[*itr];
+        current_value = bit_vector[*itr];
       }
       accessed_value = current_value;
   });
-  cout << "BitVector " << result4 << " ms" <<  endl;
+  cout << "Point Lookups; Bit-Packed; " << size / result4 << endl;
   auto result5 = measureTime([&](){
       int64_t current_value = 0;
       for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
@@ -246,7 +244,7 @@ void run_benchmark() {
       }
       accessed_value = current_value;
   });
-  cout << "Vector " << result5 << " ms" <<  endl;
+  cout << "Point Lookups; Regular Vector; " << size / result5 << endl;
 }
 
 int main(int argc, char** argv)
