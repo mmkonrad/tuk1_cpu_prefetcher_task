@@ -13,11 +13,11 @@
 
 using Time = std::chrono::nanoseconds;
 
-const size_t minSize = 10 * 1024;
+const size_t minSize = 8;
 const size_t maxSize = static_cast<size_t>(1) * 1024 * 1024 * 1024;
 const size_t cacheSize = 50 * 1024 * 1024;
-const size_t sizeStep = 64;
-const size_t iterations = 10;
+const size_t sizeStep = 2;
+const size_t iterations = 1000;
 const size_t differentValues = 20;
 const size_t minThreads = 1;
 const size_t maxThreads = 8;
@@ -53,33 +53,36 @@ template<Mode mode>
 struct Functor
 {
 	template<typename Elem>
-	static size_t execute(Elem* data, size_t elementCount);
+	static size_t execute(Elem* data, size_t elementCount, size_t itr);
 };
 
 template<>
 template<typename Elem>
-size_t Functor<Mode::AGGREGATE>::execute(Elem* data, size_t elementCount)
+size_t Functor<Mode::AGGREGATE>::execute(Elem* data, size_t elementCount, size_t itr)
 {
-	size_t counter = 0;
-	for (size_t current = 0; current < elementCount; ++current)
-	{
-		counter += data[current];
-	}
+	size_t counter;
+  for (size_t iteration = 0; iteration < itr; ++iteration) {
+    counter = 0;
+    for (size_t current = 0; current < elementCount; ++current) {
+      counter += data[current];
+    }
+  }
 	return counter;
 }
 
 template<>
 template<typename Elem>
-size_t Functor<Mode::SCAN>::execute(Elem* data, size_t elementCount)
+size_t Functor<Mode::SCAN>::execute(Elem* data, size_t elementCount, size_t itr)
 {
-	size_t counter = 0;
-	for (size_t current = 0; current < elementCount; ++current)
-	{
-		if (data[current] == 0)
-		{
-			++counter;
-		}
-	}
+  size_t counter;
+  for (size_t iteration = 0; iteration < itr; ++iteration) {
+    counter = 0;
+    for (size_t current = 0; current < elementCount; ++current) {
+      if (data[current] == 0) {
+        ++counter;
+      }
+    }
+  }
 	return counter;
 }
 
@@ -96,15 +99,19 @@ void clearCache()
 template<typename Elem, Mode mode>
 Time measureTime(Elem* data, size_t elementCount)
 {
+  int itr = std::max((1<<23) / elementCount, iterations);
 	while (!startFlag.load());
+	// fill cache
+	Functor<mode>::template execute<Elem>(data, elementCount, itr/2);
+
 	const auto begin = std::chrono::high_resolution_clock::now();
 
-	auto result = Functor<mode>::template execute<Elem>(data, elementCount);
+	auto result = Functor<mode>::template execute<Elem>(data, elementCount, itr);
 
 	const auto end = std::chrono::high_resolution_clock::now();
 
 	const volatile size_t optimizationBlocker = result;
-	return std::chrono::duration_cast<Time>(end - begin);
+	return std::chrono::duration_cast<Time>(end - begin) / itr;
 }
 
 template<typename Elem>
@@ -131,9 +138,14 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 
 		for (size_t threadCount = minThreads; threadCount <= maxThreads; threadCount *= threadStep)
 		{
+      // skip unnecessary iterations
+      if (threadCount != 1 && sizeof(Elem) != sizeof(uint64_t)) {
+        continue;
+      }
 			TestResult<Elem> result(mode, size, threadCount);
 
-			for (size_t iteration = 0; iteration < iterations; ++iteration)
+      int rounds = 5;
+			for (size_t iteration = 0; iteration < rounds; ++iteration)
 			{
 				std::vector<Time> times(threadCount);
 				std::vector<std::thread> threads(threadCount);
@@ -156,15 +168,15 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 					thread.join();
 				}
 
-				for (auto &thread : threads)
-				{
-					thread = std::thread(clearCache);
-				}
-
-				for (auto &thread : threads)
-				{
-					thread.join();
-				}
+//				for (auto &thread : threads)
+//				{
+//					thread = std::thread(clearCache);
+//				}
+//
+//				for (auto &thread : threads)
+//				{
+//					thread.join();
+//				}
 
 				auto time = *std::max_element(times.cbegin(), times.cend());
 
@@ -172,7 +184,7 @@ std::vector<TestResult<Elem>> run(uint8_t* rawData)
 				result.Min = std::min(result.Min, time);
 				result.Max = std::max(result.Max, time);
 			}
-			result.Average /= iterations;
+			result.Average /= rounds;
 
 			results.push_back(result);
 		}
@@ -198,6 +210,8 @@ void printResult(const std::vector<TestResult<Elem>> &results)
 
 int main(int argc, char** argv)
 {
+  std::cout << "Benchmark_Type; Integer_Type; Vector_Size; Thread_Count; Count; Bandwidth" << std::endl;
+
 	auto data = std::make_unique<uint8_t[]>(bufferSize);
 
 	printResult(run<uint8_t, Mode::AGGREGATE>(data.get()));
