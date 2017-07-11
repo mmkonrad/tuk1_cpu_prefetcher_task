@@ -1,7 +1,9 @@
 cmake_minimum_required (VERSION 2.6)
 
 PROJECT(Bench)
-SET(CMAKE_CXX_FLAGS "-std=c++14 -mavx2 -O3")
+if(UNIX)
+	SET(CMAKE_CXX_FLAGS "-std=c++14 -mavx2 -O3")
+endif()
 find_package(Threads)
 add_executable(Benchmark main.cpp)
 target_link_libraries (Benchmark ${CMAKE_THREAD_LIBS_INIT})
