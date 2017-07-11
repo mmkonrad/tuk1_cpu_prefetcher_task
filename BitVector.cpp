@@ -188,27 +188,26 @@ double measureTime(std::function<void()> benchmark)
 }
 
 template <typename T>
+__attribute__((optimize("no-tree-vectorize")))
 int64_t point_lookup_wo(std::vector<int> &rand_access, T &vector) {
-  __attribute__((optimize("no-tree-vectorize")))
   int64_t current_value = 0;
   for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
-    current_value ^= vector[*itr];
+    current_value += vector[*itr];
   }
   return current_value;
 }
 
 template <typename T>
 int64_t point_lookup(std::vector<int> &rand_access, T &vector) {
-  __attribute__((optimize("tree-vectorize")))
   int64_t current_value = 0;
   for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
-    current_value ^= vector[*itr];
+    current_value += vector[*itr];
   }
   return current_value;
 }
 
+__attribute__((optimize("no-tree-vectorize")))
 std::vector<bool> table_scan_wo(std::vector<int> &vect, uint64_t value) {
-  __attribute__((optimize("no-tree-vectorize")))
   std::vector<bool> result;
   result.reserve(vect.size());
   for (auto itr = vect.begin(); itr != vect.end(); ++itr) {
@@ -218,7 +217,7 @@ std::vector<bool> table_scan_wo(std::vector<int> &vect, uint64_t value) {
 }
 
 void run_benchmark() {
-  size_t size = 10000000;
+  size_t size = 500000000;
   size_t value = 1;
   BitVector<17> bit_vector(size);
   std::vector<int> vect;
@@ -258,22 +257,22 @@ void run_benchmark() {
   auto result4 = measureTime([&](){
       accessed_value = point_lookup_wo(rand_access, bit_vector);
   });
-  use_variable ^= accessed_value;
+  use_variable += accessed_value;
   cout << "Point Lookups; Bit-Packed; " << size / result4 << endl;
   auto result5 = measureTime([&](){
       accessed_value = point_lookup_wo(rand_access, vect);
   });
-  use_variable ^= accessed_value;
+  use_variable += accessed_value;
   cout << "Point Lookups; Regular Vector; " << size / result5 << endl;
   auto result6 = measureTime([&](){
       accessed_value = point_lookup(rand_access, bit_vector);
   });
-  use_variable ^= accessed_value;
+  use_variable += accessed_value;
   cout << "Point Lookups; Bit-Packed w/ SIMD; " << size / result6 << endl;
   auto result7 = measureTime([&](){
       accessed_value = point_lookup(rand_access, vect);
   });
-  use_variable ^= accessed_value;
+  use_variable += accessed_value;
   cout << "Point Lookups; Regular Vector w/ SIMD; " << size / result7 << endl;
   if (use_variable & 1) {
     cout << flush;
