@@ -113,6 +113,13 @@ def multi_thread_benchmark():
     options['out_file'] = '3_aggregate_wo-pref_multi-thread'
     plot_line(df_2, options)
 
+    # Multi-Threading w Prefetcher
+    df_3 = data_prefetch.query('Benchmark_Type == 1').query('Integer_Type == "uint64_t"')
+    options['subtitle'] = 'Intel(R) Xeon(R) X7560 @ 2.27GHz, w Prefetcher, uint64_t'
+    options['out_file'] = '3_scan_w-pref_multi-thread'
+    options['title'] = 'Column Scan Bandwidth as a Function of the Column Size and the Bitcase'
+    plot_line(df_3, options)
+
 
 base_benchmark()
 prefetch_benchmark()
