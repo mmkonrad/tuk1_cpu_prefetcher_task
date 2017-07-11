@@ -230,6 +230,7 @@ void run_benchmark() {
   cout << "Table Scan; Regular Vector; " << size / result3 << endl;
   int64_t accessed_value;
   auto result4 = measureTime([&](){
+      __attribute__((optimize("no-tree-vectorize")))
       int64_t current_value = 0;
       for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
         current_value ^= bit_vector[*itr];
@@ -238,6 +239,7 @@ void run_benchmark() {
   });
   cout << "Point Lookups; Bit-Packed; " << size / result4 << endl;
   auto result5 = measureTime([&](){
+      __attribute__((optimize("no-tree-vectorize")))
       int64_t current_value = 0;
       for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
         current_value ^= vect[*itr];
