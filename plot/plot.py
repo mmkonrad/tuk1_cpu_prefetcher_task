@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pds
 
 GCC_INTEGER_TYPES = {
-    '1': 'uint8_t',
+    '1': 'uint08_t',
     '2': 'uint16_t',
     '4': 'uint32_t',
     '8': 'uint64_t'
