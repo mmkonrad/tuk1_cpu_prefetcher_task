@@ -232,7 +232,7 @@ void run_benchmark() {
   auto result4 = measureTime([&](){
       int64_t current_value = 0;
       for (auto itr = rand_access.begin(); itr != rand_access.end(); ++itr) {
-        current_value = bit_vector[*itr];
+        current_value ^= bit_vector[*itr];
       }
       accessed_value = current_value;
   });
