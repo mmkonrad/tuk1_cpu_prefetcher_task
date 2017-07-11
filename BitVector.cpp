@@ -7,7 +7,6 @@
 #include <chrono>
 #include <functional>
 #include <iomanip>
-//#include <unistd.h>
 #include <random>
 #include <algorithm>
 #include <bitset>
@@ -18,8 +17,6 @@
 using namespace std;
 using Time = std::chrono::nanoseconds;
 
-const __m256i selection_mask_64 = _mm256_set_epi64x(-1, -1, -1, -1);
-const __m256i selection_mask = _mm256_set_epi32(-1, -1, -1, -1, -1, -1, -1, -1);
 const __m256i selection_order_first = _mm256_setr_epi32(0, 1, 0, 1, 2, 3, 2, 3);
 const __m256i selection_order_second = _mm256_setr_epi32(1, 2, 1, 2, 3, 4, 3, 4);
 
@@ -45,8 +42,8 @@ public:
           bit_position += Bits+32;
           bit_position %= 64;
         }
-        bit_shifts_first[i] = _mm256_maskload_epi64(current_bit_shifts_first, selection_mask_64);
-        bit_shifts_second[i] = _mm256_maskload_epi64(current_bit_shifts_second, selection_mask_64);
+        bit_shifts_first[i] = _mm256_loadu_si256((__m256i*)current_bit_shifts_first);
+        bit_shifts_second[i] = _mm256_loadu_si256((__m256i*)current_bit_shifts_second);
       }
     }
 
@@ -84,12 +81,12 @@ public:
     std::vector<bool> avx2_search(uint64_t value) const {
       std::vector<bool> found(_size);
       const __m256i search_value = _mm256_set1_epi32(value); // initialze compare array
+	  const __m256i bit_mask = _mm256_set1_epi64x((1l << Bits) - 1);
       auto itr = found.begin();
       int * data_ptr = (int*) _data.data();
       int bitshift_index = 0;
       for (size_t i = 0; i < _size;) {
-        const __m256i bit_mask = _mm256_set1_epi64x((1l << Bits)-1);
-        const __m256i input_values = _mm256_maskload_epi64((long long int*) data_ptr, selection_mask_64); // load data
+		const __m256i input_values = _mm256_loadu_si256((__m256i*) data_ptr); // load data
         __m256i values_first = _mm256_permutevar8x32_epi32(input_values, selection_order_first); // put numbers with index 0, 1, 4, 5 to values second
         values_first = _mm256_srlv_epi64(values_first, bit_shifts_first[bitshift_index]); // shift number to right - each number in 64 bit range
         values_first = _mm256_and_si256(values_first, bit_mask); // clear unwanted bits
@@ -145,7 +142,7 @@ protected:
 
 void test_avx2() {
   cout << "Testing AVX2 Code ..." << endl;
-  for (size_t vector_size = 1; vector_size < 100; ++vector_size) { // 2000
+  for (size_t vector_size = 1; vector_size < 1000; ++vector_size) { // 2000
     if (vector_size % 100 == 0) {
       cout << "With size: " << vector_size << endl;
     }
@@ -221,7 +218,7 @@ std::vector<bool> table_scan_wo(std::vector<int> &vect, uint64_t value) {
 }
 
 void run_benchmark() {
-  size_t size = 50000000;
+  size_t size = 10000000;
   size_t value = 1;
   BitVector<17> bit_vector(size);
   std::vector<int> vect;
