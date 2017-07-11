@@ -17,7 +17,7 @@ const size_t minSize = 8;
 const size_t maxSize = static_cast<size_t>(1) * 1024 * 1024 * 1024;
 const size_t cacheSize = 50 * 1024 * 1024;
 const size_t sizeStep = 2;
-const size_t iterations = 1000;
+const size_t iterations = 500;
 const size_t differentValues = 20;
 const size_t minThreads = 1;
 const size_t maxThreads = 8;
@@ -99,7 +99,7 @@ void clearCache()
 template<typename Elem, Mode mode>
 Time measureTime(Elem* data, size_t elementCount)
 {
-  int itr = std::max((1<<23) / elementCount, iterations);
+  int itr = std::max((1<<22) / elementCount, iterations);
 	while (!startFlag.load());
 	// fill cache
 	Functor<mode>::template execute<Elem>(data, elementCount, itr/2);
