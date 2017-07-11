@@ -83,6 +83,7 @@ public:
      */
     std::vector<bool> avx2_search(uint64_t value) const {
       std::vector<bool> found(_size);
+      const __m256i search_value = _mm256_set1_epi32(value); // initialze compare array
       auto itr = found.begin();
       int * data_ptr = (int*) _data.data();
       int bitshift_index = 0;
@@ -96,7 +97,6 @@ public:
         values_second = _mm256_srlv_epi64(values_second, bit_shifts_second[bitshift_index]); // shift numbers to right - each number in 64 bit range
         values_second = _mm256_and_si256(values_second, bit_mask); // clear unwanted bits
         __m256i values = _mm256_hadd_epi32(values_first, values_second); // combine values from even and uneven positions
-        __m256i search_value = _mm256_set1_epi32(value); // initialze compare array
         values = _mm256_cmpeq_epi32(values, search_value); // compare values with serch term
         int* result = (int*) &values;
         for (size_t j = 0; j < 8 && i < _size; ++j, ++i) {
