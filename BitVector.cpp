@@ -17,8 +17,8 @@
 using namespace std;
 using Time = std::chrono::nanoseconds;
 
-const __m256i selection_order_first = _mm256_setr_epi32(0, 1, 0, 1, 2, 3, 2, 3);
-const __m256i selection_order_second = _mm256_setr_epi32(1, 2, 1, 2, 3, 4, 3, 4);
+const __m256i selection_order_first = _mm256_setr_epi32(0, 1, 0, 1, 1, 2, 1, 2);
+const __m256i selection_order_second = _mm256_setr_epi32(2, 3, 2, 3, 3, 4, 3, 4);
 
 template<unsigned int Bits, typename T = uint64_t>
 class BitVector {
@@ -31,19 +31,20 @@ public:
         for (size_t j = 0; j < 4; j+=2) {
           current_bit_shifts_first[j] = bit_position;
           bit_position += Bits;
-          bit_position %= 64;
           current_bit_shifts_first[j+1] = bit_position;
-          bit_position += Bits+32;
+          bit_position += Bits + 32;
           bit_position %= 64;
+        }
+        for (size_t j = 0; j < 4; j+=2) {
           current_bit_shifts_second[j] = bit_position;
           bit_position += Bits;
-          bit_position %= 64;
           current_bit_shifts_second[j+1] = bit_position;
-          bit_position += Bits+32;
+          bit_position += Bits + 32;
           bit_position %= 64;
         }
         bit_shifts_first[i] = _mm256_loadu_si256((__m256i*)current_bit_shifts_first);
         bit_shifts_second[i] = _mm256_loadu_si256((__m256i*)current_bit_shifts_second);
+
       }
     }
 
@@ -80,24 +81,73 @@ public:
      */
     std::vector<bool> avx2_search(uint64_t value) const {
       std::vector<bool> found(_size);
-      const __m256i search_value = _mm256_set1_epi32(value); // initialze compare array
-	  const __m256i bit_mask = _mm256_set1_epi64x((1l << Bits) - 1);
+      const __m256i search_value = _mm256_set1_epi64x(value); // initialze compare array
       auto itr = found.begin();
       int * data_ptr = (int*) _data.data();
       int bitshift_index = 0;
-      for (size_t i = 0; i < _size;) {
-		const __m256i input_values = _mm256_loadu_si256((__m256i*) data_ptr); // load data
-        __m256i values_first = _mm256_permutevar8x32_epi32(input_values, selection_order_first); // put numbers with index 0, 1, 4, 5 to values second
+      // still 8 values to scan
+      size_t i;
+      for (i = 8; i <= _size; i+=8) {
+		    const __m256i input_values = _mm256_loadu_si256((__m256i*) data_ptr); // load data
+        __m256i values_first = _mm256_permutevar8x32_epi32(input_values, selection_order_first); // put numbers with index 0, 1, 2, 3 to values second
+//        long long int* _result = (long long int*) &values_first;
+//        for (int _i = 0; _i < 4; ++_i) {
+//          bitset<64> bs(_result[_i]);
+//          cout << bs << endl;
+//        }
+//        cout << endl;
         values_first = _mm256_srlv_epi64(values_first, bit_shifts_first[bitshift_index]); // shift number to right - each number in 64 bit range
         values_first = _mm256_and_si256(values_first, bit_mask); // clear unwanted bits
-        __m256i values_second = _mm256_permutevar8x32_epi32(input_values, selection_order_second); // put numbers with index 2, 3, 6, 7 to values second
+        values_first = _mm256_cmpeq_epi64(values_first, search_value); // compare values with serch term
+        __m256i values_second = _mm256_permutevar8x32_epi32(input_values, selection_order_second); // put numbers with index 4, 5 6, 7 to values second
         values_second = _mm256_srlv_epi64(values_second, bit_shifts_second[bitshift_index]); // shift numbers to right - each number in 64 bit range
         values_second = _mm256_and_si256(values_second, bit_mask); // clear unwanted bits
-        __m256i values = _mm256_hadd_epi32(values_first, values_second); // combine values from even and uneven positions
-        values = _mm256_cmpeq_epi32(values, search_value); // compare values with serch term
-        int* result = (int*) &values;
-        for (size_t j = 0; j < 8 && i < _size; ++j, ++i) {
-          *itr++ = static_cast<bool>(*result++);
+        values_second = _mm256_cmpeq_epi64(values_second, search_value); // compare values with serch term
+        long long int* result = (long long int*) &values_first;
+        *itr = static_cast<bool>(*result++);
+        *++itr = static_cast<bool>(*result++);
+        *++itr = static_cast<bool>(*result++);
+        *++itr = static_cast<bool>(*result);
+        result = (long long int*) &values_second;
+        *++itr = static_cast<bool>(*result++);
+        *++itr = static_cast<bool>(*result++);
+        *++itr = static_cast<bool>(*result++);
+        *++itr = static_cast<bool>(*result);
+        ++itr;
+        data_ptr += 4;
+        ++bitshift_index;
+        if (bitshift_index == 4) {
+          ++data_ptr;
+        }
+        bitshift_index %= 4;
+      }
+
+      // less than 8 values to scan
+      for (i -= 8; i < _size;) {
+        const __m256i input_values = _mm256_loadu_si256((__m256i*) data_ptr); // load data
+        __m256i values_first = _mm256_permutevar8x32_epi32(input_values, selection_order_first); // put numbers with index 0, 1, 2, 3 to values second
+//        long long int* _result = (long long int*) &values_first;
+//        for (int _i = 0; _i < 4; ++_i) {
+//          bitset<64> bs(_result[_i]);
+//          cout << bs << endl;
+//        }
+//        cout << endl;
+        values_first = _mm256_srlv_epi64(values_first, bit_shifts_first[bitshift_index]); // shift number to right - each number in 64 bit range
+        values_first = _mm256_and_si256(values_first, bit_mask); // clear unwanted bits
+        values_first = _mm256_cmpeq_epi64(values_first, search_value); // compare values with serch term
+        __m256i values_second = _mm256_permutevar8x32_epi32(input_values, selection_order_second); // put numbers with index 4, 5, 6, 7 to values second
+        values_second = _mm256_srlv_epi64(values_second, bit_shifts_second[bitshift_index]); // shift numbers to right - each number in 64 bit range
+        values_second = _mm256_and_si256(values_second, bit_mask); // clear unwanted bits
+        values_second = _mm256_cmpeq_epi64(values_second, search_value); // compare values with serch term
+        long long int* result = (long long int*) &values_first;
+        for (size_t j = 0; j < 4 && i < _size; ++j, ++i) {
+          *itr = static_cast<bool>(*result++);
+          ++itr;
+        }
+        result = (long long int*) &values_second;
+        for (size_t j = 0; j < 4 && i < _size; ++j, ++i) {
+          *itr = static_cast<bool>(*result++);
+          ++itr;
         }
         data_ptr += 4;
         ++bitshift_index;
@@ -136,6 +186,7 @@ protected:
     std::vector<T> _data;
     __m256i bit_shifts_first[4];
     __m256i bit_shifts_second[4];
+    const __m256i bit_mask = _mm256_set1_epi64x((1l << Bits) - 1);
 
     static_assert(Bits <= row_bits, "Bits > row_bits");
 };
