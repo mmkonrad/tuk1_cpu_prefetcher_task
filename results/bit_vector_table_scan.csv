@@ -1,10 +1,10 @@
 Operation; Type; #Tuples
-Haswell; AVX; 649644563
+Haswell; SIMD; 649644563
 Haswell; Bit-Packed; 306808038
 Haswell; Regular Vector; 395129024
-Skylake; AVX; 650747374
+Skylake; SIMD; 650747374
 Skylake; Bit-Packed; 308072887
 Skylake; Regular Vector; 370206919
-Broadwell; AVX; 632963144
+Broadwell; SIMD; 632963144
 Broadwell; Bit-Packed; 300243802
 Broadwell; Regular Vector; 388077886
