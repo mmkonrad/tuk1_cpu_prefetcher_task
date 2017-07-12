@@ -21,7 +21,7 @@ sns.set(style="white",
 ##################################
 data = pds.read_csv('./results/bit_vector_skylake.csv', ';', skipinitialspace=True)
 
-type_order = ['Regular Vector', 'Bit-Packed', 'AVX']
+type_order = ['Regular Vector', 'Bit-Packed', 'SIMD']
 operation_order = ['Point Lookups', 'Table Scan']
 
 # Mind aspect ratio for 16:9 presentation
@@ -55,7 +55,7 @@ g.savefig("./plot/04_bit_vector_skylake.png")
 ##################################
 data = pds.read_csv('./results/bit_vector_table_scan.csv', ';', skipinitialspace=True)
 
-operation_order = ['Regular Vector', 'Bit-Packed', 'AVX']
+operation_order = ['Regular Vector', 'Bit-Packed', 'SIMD']
 cpu_order = ['Haswell', 'Broadwell', 'Skylake']
 
 # Mind aspect ratio for 16:9 presentation

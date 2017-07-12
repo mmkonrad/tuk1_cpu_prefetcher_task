@@ -1,13 +1,13 @@
-Operation; Type; #Tuples
+cpu_generation; type; no_of_tuples
 Haswell; Bit-Packed; 29639793
-Haswell; Regular Vector; 19587860
 Haswell; Bit-Packed w/ SIMD; 35468567
+Haswell; Regular Vector; 19587860
 Haswell; Regular Vector w/ SIMD; 16673025
-Skylake; Bit-Packed; 23627520
-Skylake; Regular Vector; 21396724
-Skylake; Bit-Packed w/ SIMD; 24097031
-Skylake; Regular Vector w/ SIMD; 21160950
 Broadwell; Bit-Packed; 32403600
-Broadwell; Regular Vector; 16501189
 Broadwell; Bit-Packed w/ SIMD; 30485260
+Broadwell; Regular Vector; 16501189
 Broadwell; Regular Vector w/ SIMD; 15484514
+Skylake; Bit-Packed; 23627520
+Skylake; Bit-Packed w/ SIMD; 24097031
+Skylake; Regular Vector; 21396724
+Skylake; Regular Vector w/ SIMD; 21160950
