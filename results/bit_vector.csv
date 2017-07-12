@@ -1,6 +1,0 @@
-Operation; Type; #Tuples
-Table Scan; AVX; 475316799
-Table Scan; Bit-Packed; 363220311
-Table Scan; Regular Vector; 457245280
-Point Lookups; Bit-Packed; 66274894
-Point Lookups; Regular Vector; 84639031

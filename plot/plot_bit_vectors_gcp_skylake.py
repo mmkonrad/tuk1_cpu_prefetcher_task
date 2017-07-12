@@ -14,9 +14,10 @@ plt.rcParams['ytick.labelsize'] = 8
 plt.rcParams['legend.fontsize'] = 10
 plt.rcParams['figure.titlesize'] = 12
 
-dpoints = pds.read_csv('./results/bit_vector.csv', ';', skipinitialspace=True)
-dpoints.loc[-1] = ['Point Lookups', 'AVX', 0]
+dpoints = pds.read_csv('./results/bit_vector_skylake.csv', ';', skipinitialspace=True)
+dpoints = dpoints.values
 dpoints[:, 0], dpoints[:, 1] = dpoints[:, 1], dpoints[:, 0].copy()
+
 print(dpoints)
 
 fig = plt.figure()
@@ -52,9 +53,11 @@ def barplot(ax, dpoints):
 
     ax.set_ylabel("Tuples per Second")
 
+    plt.figtext(0, 0, 'Google Cloud Platform Instance: Skylake, 4 vCPUs, 16 GB Ram', fontsize=8)
+
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[::-1], labels[::-1])
-
+    plt.legend(frameon=False)
     # Remove the plot frame lines.
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
@@ -65,5 +68,8 @@ def barplot(ax, dpoints):
     plt.tick_params(axis='both', which='both', bottom='off', top='off',
                     labelbottom='on', left='off', right='off', labelleft='on')
 
+
 barplot(ax, dpoints)
-plt.savefig('./plot/' + '4_bit_vector' + '.pdf', bbox_inches='tight', dpi=200)
+plt.ylim([0,700000000])
+plt.savefig('./plot/' + '4_bit_vector_skylake' + '.pdf', bbox_inches='tight', dpi=200)
+plt.savefig('./plot/' + '4_bit_vector_skylake' + '.png', bbox_inches='tight', dpi=200)
