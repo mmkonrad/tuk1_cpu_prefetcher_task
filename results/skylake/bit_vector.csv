@@ -1,0 +1,8 @@
+Operation; Type; #Tuples
+Table Scan; AVX; 650747374
+Table Scan; Bit-Packed; 308072887
+Table Scan; Regular Vector; 370206919
+Point Lookups; Bit-Packed; 23627520
+Point Lookups; Regular Vector; 21396724
+Point Lookups; Bit-Packed w/ SIMD; 24097031
+Point Lookups; Regular Vector w/ SIMD; 21160950
