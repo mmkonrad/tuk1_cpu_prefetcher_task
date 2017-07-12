@@ -1,11 +1,23 @@
 import matplotlib.pyplot as plt
 import pandas as pds
 import numpy as np
-import matplotlib.cm as cm
 import operator as o
 
-dpoints = pds.read_csv('./results/bit_vector.csv', ';', skipinitialspace=True).values
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = 'Ubuntu'
+plt.rcParams['font.monospace'] = 'Ubuntu Mono'
+plt.rcParams['font.size'] = 10
+plt.rcParams['axes.labelsize'] = 10
+plt.rcParams['axes.labelweight'] = 'bold'
+plt.rcParams['xtick.labelsize'] = 8
+plt.rcParams['ytick.labelsize'] = 8
+plt.rcParams['legend.fontsize'] = 10
+plt.rcParams['figure.titlesize'] = 12
+
+dpoints = pds.read_csv('./results/bit_vector.csv', ';', skipinitialspace=True)
+dpoints.loc[-1] = ['Point Lookups', 'AVX', 0]
 dpoints[:, 0], dpoints[:, 1] = dpoints[:, 1], dpoints[:, 0].copy()
+print(dpoints)
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
