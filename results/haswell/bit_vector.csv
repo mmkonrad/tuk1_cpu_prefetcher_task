@@ -1,5 +1,5 @@
 Operation; Type; #Tuples
-Table Scan; AVX; 649644563
+Table Scan; SIMD; 649644563
 Table Scan; Bit-Packed; 306808038
 Table Scan; Regular Vector; 395129024
 Point Lookups; Bit-Packed; 29639793
