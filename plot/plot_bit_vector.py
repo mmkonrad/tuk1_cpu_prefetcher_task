@@ -89,7 +89,7 @@ g.savefig("./plot/04_bit_vector_table_scan.png")
 ##################################
 data = pds.read_csv('./results/bit_vector_point_lookup.csv', ';', skipinitialspace=True)
 
-operation_order = ['Bit-Packed', 'Bit-Packed w/ SIMD', 'Regular Vector', 'Regular Vector w/ SIMD']
+operation_order = ['Regular Vector', 'Regular Vector w/ SIMD', 'Bit-Packed', 'Bit-Packed w/ SIMD']
 cpu_order = ['Haswell', 'Broadwell', 'Skylake']
 # Mind aspect ratio for 16:9 presentation
 g = sns.factorplot(kind="bar",
@@ -106,7 +106,7 @@ g = sns.factorplot(kind="bar",
 # Add custom legend to remove unnecessary heading
 g.add_legend(label_order=cpu_order)
 
-g.set(xlabel="", ylabel="Tuples per Second", ylim=[0, 700000000])
+g.set(xlabel="", ylabel="Tuples per Second")
 
 # Fix sizing of long labels
 g.set_xticklabels(fontsize=9)
