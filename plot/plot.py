@@ -9,9 +9,9 @@ GCC_INTEGER_TYPES = {
 }
 
 CACHE_SIZES_IN_KB = {
-    'L1': 32,
-    'L2': 256,
-    'L3': 24576
+    'L1': 32 * 1024,
+    'L2': 256 * 1024,
+    'L3': 24576 * 1024
 }
 
 converters = {'Integer_Type': lambda x: GCC_INTEGER_TYPES[x]}
