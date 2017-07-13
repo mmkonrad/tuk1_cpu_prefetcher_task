@@ -2,5 +2,6 @@ operation; type; no_of_tuples
 Table Scan; SIMD; 650747374
 Table Scan; Bit-Packed; 308072887
 Table Scan; Regular Vector; 370206919
+Point Lookups; SIMD; 0
 Point Lookups; Bit-Packed; 23627520
 Point Lookups; Regular Vector; 21396724
